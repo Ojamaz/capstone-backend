@@ -5,39 +5,43 @@ def fetch_wikidata(params):
     try:
         return requests.get(url, params=params)
     except:
-        return 'There was and error'
-    
-# What text to search for
+        return 'There was an error'
+
 query = 'Enzyme'
 
-# Which parameters to use
 params = {
-        'action': 'wbsearchentities',
-        'format': 'json',
-        'search': query,
-        'language': 'en'
-    }
-
-# Fetch API
+    'action': 'wbsearchentities',
+    'format': 'json',
+    'search': query,
+    'language': 'en'
+}
 data = fetch_wikidata(params)
-
-#show response as JSON
 data = data.json()
-id = data['search'][0]['id']
+entity_id = data['search'][0]['id']
 
-# Create parameters
 params = {
-            'action': 'wbgetentities',
-            'ids':id, 
-            'format': 'json',
-            'languages': 'en'
-        }
-
-# fetch the API
+    'action': 'wbgetentities',
+    'ids': entity_id,
+    'format': 'json',
+    'languages': 'en'
+}
 data = fetch_wikidata(params)
-
-# Show response
 data = data.json()
-print(data['entities'][id]['claims'].keys())
 
+
+properties_to_display = ['P31', 'P575']
+
+for prop_id in properties_to_display:
+    if prop_id in data['entities'][entity_id]['claims']:
+        claim = data['entities'][entity_id]['claims'][prop_id]
+        print(f"Property {prop_id}:")
+        for statement in claim:
+            datavalue = statement['mainsnak'].get('datavalue', {}).get('value')
+            print(f" Value: {datavalue}")
+    else:
+        print(f"Property {prop_id}: No value found")
+
+
+entity_label = data['entities'][entity_id]['labels']['en']['value']
+print(f"Label: {entity_label}")
 
