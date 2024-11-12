@@ -67,7 +67,7 @@ try:
     #creates a set to avoid duplicates
     seen_concepts = set()
 
-    # Write results to CSV
+    #write results to CSV
     with open("scientific_concepts.csv", mode="w", newline='', encoding="utf-8") as file:
         writer = csv.writer(file)
         writer.writerow(["Concept", "Description", "Field"])
@@ -77,10 +77,9 @@ try:
             description = result["description"]["value"]
             field = result.get("fieldLabel", {}).get("value", "Unknown")
             
-            # Use a tuple of (concept, description, field) as the unique identifier
             entry = (concept, description, field)
             
-            # Only write the entry if it's not already seen
+            #only write the entry if it's not already seen
             if entry not in seen_concepts:
                 writer.writerow([concept, description, field])
                 seen_concepts.add(entry)

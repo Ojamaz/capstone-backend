@@ -58,7 +58,7 @@ def get_related_entity_date(entity_id):
     data = fetch_wikidata(params)
     if data:
         entity_data = data['entities'][entity_id]
-        # Try 'subclass of' (P279) and 'instance of' (P31) relationships for discovery date
+        #Try 'subclass of' (P279) and 'instance of" relationships for discovery date
         related_properties = ['P279', 'P31']
         for prop_id in related_properties:
             if prop_id in entity_data['claims']:
@@ -71,7 +71,7 @@ def get_related_entity_date(entity_id):
                             return related_date
     return None
 
-# Main function to retrieve the discovery date
+
 def get_discovery_date(entity_label):
     entity_id = get_entity_id(entity_label)
     if not entity_id:
@@ -83,20 +83,20 @@ def get_discovery_date(entity_label):
         print("Could not retrieve entity data.")
         return None
 
-    # Attempt to get P575 (discovery date) directly
+    #Attempt to get discovery date directly
     discovery_date = get_property_value(entity_data, entity_id, 'P575')
     if discovery_date:
         return discovery_date
 
-    # If P575 is missing, try related entities
+    #If P575 is missing, try related entities
     related_discovery_date = get_related_entity_date(entity_id)
     if related_discovery_date:
         return related_discovery_date
 
-    # Fallback date if no information was found
-    return False  # Approximate fallback date for enzyme discovery
+    #return false if no information was found
+    return False  
 
-# Example Usage
+#example Use for 1 topic "enzymes"
 entity_label = "Enzyme"
 discovery_date = get_discovery_date(entity_label)
 print(f"Discovery date for {entity_label}: {discovery_date}")
