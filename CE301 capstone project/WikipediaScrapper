@@ -1,0 +1,127 @@
+import requests
+from bs4 import BeautifulSoup
+import networkx as nx
+import openai
+import csv
+
+"""
+Program to scrape Wikipedia pages to identify scientific discoveries and store them in a CSV file.
+notes: 
+- Program uses LLM openai model to decide if a topic is a scientific discovery or not.
+- LLM also provides the year of disovery
+- Shorter responses to prompts = cheaperAPI calls and easier to parse.
+
+"""
+#Constants--------------------------------------------
+DEPTH_LIMIT = 3                                     #Limit the depth of exploration
+LINK_SCRAP_LIMIT = 20                                #Limit the number of links to scrape from each page
+START_URL = 'https://en.wikipedia.org/wiki/Enzyme'  #starting Wikipedia page
+API_KEY = "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"
+
+#Variables--------------------------------------------
+visited = set() #Already visted links
+results_csv = "scientific_concepts.csv"
+current_id = 1
+openai.api_key = API_KEY
+
+#Functions--------------------------------------------
+def query_LLM(query):
+    #Helper function that follows the LLM prompt-response format
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": query}
+            ]
+        )
+        return response['choices'][0]['message']['content']
+    except openai.error.OpenAIError as e:
+        print(f"Error querying OpenAI API: {e}")
+        return "false"
+
+
+def is_scientific_discovery(link):
+    query = f"Does the topic described in the article at {link} represent a scientific discovery? Return 'true' or 'false' only."
+    print(f"Querying GPT for link: {link}") 
+    response = query_LLM(query)
+    print(f"Response from GPT: {response}")
+    return "true" in response.lower()
+
+def get_discovery_details(link):
+    query = (
+        f"provide the year of discovery and a short description for the topic described in the article at {link}. "
+        f"please provide the Year of discovery first, to make parsing easier. Format the response as '[Year]:[Description]'."
+    )
+    
+    response = query_LLM(query)
+
+    #Parsing response
+    try:
+        year, description = response.split(":", 1) 
+        year = year.strip() 
+        description = description.strip()
+    except ValueError:
+        year = "Unknown"  # Default if parsing fails
+        description = "Unable to parse year/description."
+    
+    return {"date": year, "description": description}
+def scrape_wikipedia_links(url, limit=5):
+   #Scrapes the Wikipedia page at the given URL and returns a list of links found on the page (limited to 5)
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Error fetching {url}: {e}")
+        return []
+    
+    soup = BeautifulSoup(response.text, 'html.parser')
+    links = set()
+    for a_tag in soup.find_all('a', href=True):
+        link = a_tag['href']
+        if link.startswith('/wiki/') and ':' not in link:
+            links.add('https://en.wikipedia.org' + link)
+        if len(links) >= limit:  # Stop once the limit is reached
+            break
+    link = list(links)
+    print(f"Links found on {url}: {links}") 
+    return links
+
+def explore_discoveries(url, depth, DEPTH_LIMIT, csv_writer, limit=5):
+    #Recursively explore Wikipedia links to identify scientific discoveries and store them in a CSV file.
+    global current_id
+    if depth > DEPTH_LIMIT or url in visited:
+        print(f"Stopping exploration at depth {depth} for {url}.")
+        return #guard condition
+    visited.add(url)
+    print(f"Exploring {url} at depth {depth}")
+    links = scrape_wikipedia_links(url, limit)
+    for link in links:
+        if link not in visited and is_scientific_discovery(link):
+            details = get_discovery_details(link)
+            name = link.split('/')[-1].replace('_', ' ') #Grabs name from end of URL
+
+            #Write details to CSV with the rearranged format
+            csv_writer.writerow([current_id, name, details['date'], details['description'], link])
+        
+            print(f"ID {current_id}: {name} - {details['date']} - {details['description']} - {link}")
+            current_id += 1
+            explore_discoveries(link, depth + 1, DEPTH_LIMIT, csv_writer, limit)
+
+
+def main():
+    """
+    Main function to initiate the exploration process and handle CSV writing.
+    """
+
+    # Open CSV file for writing
+    with open(results_csv, mode='w', newline='', encoding='utf-8') as file:
+        csv_writer = csv.writer(file)
+        # Write header row
+        csv_writer.writerow(["ID", "Name", "Discovery Date", "Description", "URL"])
+        
+        # Start exploration
+        print(f"Starting exploration from: {START_URL}")
+        explore_discoveries(START_URL, 1, DEPTH_LIMIT, csv_writer, limit=5)
+#Main--------------------------------------------
+main()
