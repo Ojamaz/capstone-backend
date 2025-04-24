@@ -1,0 +1,13 @@
+# React dependencies
+discoveries-frontend/node_modules/
+
+# Python caches
+__pycache__/
+*.pyc
+
+# VS Code settings
+.vscode/
+
+# System files
+.DS_Store
+Thumbs.db
