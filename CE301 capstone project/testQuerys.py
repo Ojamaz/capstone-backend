@@ -6,13 +6,14 @@ sparql = SPARQLWrapper("https://query.wikidata.org/sparql")
 
 #Set up the query
 sparql.setQuery("""
-    SELECT ?concept ?conceptLabel ?description ?fieldLabel WHERE {
+    SELECT ?concept ?conceptLabel ?description ?fieldLabel WHERE  {
   VALUES ?conceptClass { 
     wd:Q11234   # scientific principle
     wd:Q12136   # scientific theory
     wd:Q223557  # physical phenomenon
     wd:Q4026292 # technological field
     wd:Q1798053 # natural science
+                
   }
   
   ?concept wdt:P31 ?conceptClass;
