@@ -75,6 +75,6 @@ def main():
     driver = GraphDatabase.driver(URI, auth=(USERNAME, PASSWORD))
     update_hierarchy(driver, hierarchy_map)
     driver.close()
-    print("✅ Hierarchy fields updated successfully in Neo4j.")
+    print("Hierarchy fields updated successfully in Neo4j.")
 
 main()

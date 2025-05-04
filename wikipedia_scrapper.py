@@ -24,18 +24,6 @@ import openai
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 # ---------------- SETTINGS ----------------
 SAVE_LIMIT        = 10_000                       # stop after this many discoveries
 DEPTH_CRAWL       = 3                            # category recursion depth

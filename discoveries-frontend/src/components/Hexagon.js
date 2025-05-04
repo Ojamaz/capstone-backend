@@ -18,3 +18,4 @@ export default function drawHex(ctx, { x, y }, size, fill, glow) {
     ctx.restore();
   }
   
+  
