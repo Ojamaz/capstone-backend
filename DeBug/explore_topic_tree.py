@@ -7,10 +7,7 @@ program that runs a menu to help test the backend of the database/hierachy
 """
 
 
-
-
-
-# Load your enriched data
+# Load 
 with open("discoveries_with_friendly_topics.json", "r", encoding="utf-8") as f:
     data = json.load(f)
 

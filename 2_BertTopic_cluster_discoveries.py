@@ -5,11 +5,11 @@ from bertopic import BERTopic
 from sentence_transformers import SentenceTransformer
 from bertopic.representation import KeyBERTInspired
 
-
+print("Using BertTopic to Processs clusters...")
 
 # ---------- Settings ----------
 NR_TOPICS = 50  # Final number of topics after reduction
-MIN_TOPIC_SIZE = 3  # Minimum documents per topic
+MIN_TOPIC_SIZE = 15  # Minimum documents per topic
 EMBEDDING_MODEL_NAME = "all-mpnet-base-v2"
 
 
@@ -46,6 +46,12 @@ topic_model.reduce_topics(df["clean_text"], nr_topics=NR_TOPICS)
 representation_model = KeyBERTInspired()
 topic_model.update_topics(df["clean_text"], representation_model=representation_model)
 
+# -- Inspect what we really got
+freq   = topic_model.get_topic_info()        # DataFrame
+print(freq[["Topic", "Count"]].head(20))     # top 20 by size
+real_ids = sorted(freq[freq.Topic != -1]["Topic"].tolist())
+print("\nIDs that actually exist:", real_ids)
+
 # ---------- Inspect Topic Words for Manual Naming ----------
 for topic_id in topic_model.get_topics():
     if topic_id == -1:
@@ -67,5 +73,5 @@ def safe_get_label(x):
 df["topic_label"] = df["topic_id"].apply(safe_get_label)
 
 # ---------- Save Output ----------
-df.to_json('discoveries_with_topics.json', orient='records', indent=2)
+df.to_json('json files/discoveries_with_topics.json', orient='records', indent=2)
 print("\n Done. Topics refined and saved to discoveries_with_topics.json")

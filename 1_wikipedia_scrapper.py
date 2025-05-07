@@ -65,8 +65,8 @@ def make_session() -> requests.Session:
         }
     )
     retry = Retry(
-        total=4,                # 1 original try + 4 retries  → 5 attempts max
-        backoff_factor=0.75,    # 0.75, 1.5, 3.0, 6.0 s between retries
+        total=4,               
+        backoff_factor=0.75,    
         status_forcelist=[429, 500, 502, 503, 504],
         allowed_methods=["GET"],
         raise_on_status=False,
@@ -79,7 +79,7 @@ def make_session() -> requests.Session:
 
 
 SESSION = make_session()       # global, reused everywhere
-JITTER_SEC = 0.05              # extra ± 50 ms on each polite pause
+JITTER_SEC = 0.05              # extra 50 ms on each polite pause
 
 openai.api_key = API_KEY
 
@@ -213,7 +213,7 @@ def get_page_text(url: str) -> str:
         resp.raise_for_status()
     except requests.exceptions.RequestException as e:
         # Any network hiccup – log and skip
-        print(f"⏱️  Wikipedia fetch failed ({type(e).__name__}): {endpoint}")
+        print(f"Wikipedia fetch failed ({type(e).__name__}): {endpoint}")
         return ""
 
     soup = BeautifulSoup(resp.text, "html.parser")

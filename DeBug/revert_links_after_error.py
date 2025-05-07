@@ -1,5 +1,5 @@
 import json
-
+ #Acts as a way to manually set a checkpoint to the last known valid link visited, so processing can resume from that point
 VISITED_FILE = "visited_links.json"
 LAST_GOOD_URL = "https://en.wikipedia.org/wiki/Dujiangyan"
 

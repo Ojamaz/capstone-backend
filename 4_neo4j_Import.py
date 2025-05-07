@@ -3,7 +3,7 @@ import pandas as pd
 from neo4j import GraphDatabase
 
 # --- Load your JSON data ---
-with open("discoveries_with_friendly_topics.json", "r", encoding="utf-8") as f:
+with open("json files/discoveries_with_friendly_topics.json", "r", encoding="utf-8") as f:
     data = json.load(f)
 
 df = pd.DataFrame(data)
@@ -18,24 +18,36 @@ driver = GraphDatabase.driver(uri, auth=(username, password))
 # --- Function to import discoveries ---
 def import_discovery(tx, discovery):
     query = """
+    
     MERGE (d:Discovery {id: $id})
-    SET d.name = $name,
-        d.year = $year
+    SET   d.name = $name,
+          d.year = $year
 
+    
     MERGE (primary_topic:Topic {name: $topic_label})
+      ON CREATE SET primary_topic.hierarchy = $topic_hierarchy
+      ON MATCH  SET primary_topic.hierarchy =
+                   coalesce(primary_topic.hierarchy, $topic_hierarchy)
     MERGE (d)-[:BELONGS_TO]->(primary_topic)
 
-    WITH d
-    UNWIND $topic_hierarchy AS topic_name
-        MERGE (t:Topic {name: topic_name})
-        MERGE (d)-[:IN_HIERARCHY]->(t)
+    WITH d, $topic_hierarchy AS topic_hierarchy
+
+    UNWIND topic_hierarchy AS topic_name
+      MERGE (t:Topic {name: topic_name})
+        ON CREATE SET t.hierarchy = topic_hierarchy
+        ON MATCH  SET t.hierarchy =
+                     coalesce(t.hierarchy , topic_hierarchy)
+      MERGE (d)-[:IN_HIERARCHY]->(t)
     """
+
     tx.run(query, **discovery)
+
 
 # --- Clear existing data (run once at start) ---
 with driver.session() as session:
     session.run("MATCH (n) DETACH DELETE n")
 
+print("Importing...")
 # --- Import Data into Neo4j ---
 with driver.session() as session:
     for _, row in df.iterrows():

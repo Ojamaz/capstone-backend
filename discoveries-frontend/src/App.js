@@ -14,8 +14,8 @@ export default function App() {
   useEffect(() => {
   axios.get("http://localhost:8000/topics").then(res => {
     const names = res.data.map(t => t.name).sort();
-    setTopics(["(All topics)", ...names]);          // ← prepend option
-    setTopic  ("");                                 // ← start with ALL
+    setTopics(["(All topics)", ...names]);          
+    setTopic  ("");                                
   });
 }, []);
 

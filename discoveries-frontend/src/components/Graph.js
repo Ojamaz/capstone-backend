@@ -4,13 +4,13 @@ import axios from "axios";
 import drawHex from "./Hexagon";
 
 //--------------- CONFIG  --------------------------
-//  CONFIG  – tweak visual style & API base here
+//  change visuals
 // 
 const CFG = {
   API_BASE        : "http://localhost:8000",
-  TOPIC_HEX_SIZE  : 20,
+  TOPIC_HEX_SIZE  : 200,
   DISC_HEX_SIZE   : 10,
-  GLOW_BLUR       : 15,
+  GLOW_BLUR       : 300,
   FONT_SIZE_L0   : 8,
   FONT_SIZE_L1   : 6,
   COLOURS         : {          // mirror backend
@@ -26,12 +26,13 @@ export default function Graph({ topic, minYear, maxYear }) {
   const [data , setData ] = useState({nodes:[],links:[]});
   const ref   = useRef();
 
-  /* -------- (re)load graph when filters change */
+  /* -------- reload graph when filters change */
   useEffect(() => {
-    if (!topic) return;
-    const url =
-        `${CFG.API_BASE}/graph?topic=${encodeURIComponent(topic)}` +
-        `&min_year=${minYear}&max_year=${maxYear}`;
+       const url = topic
+         ? `${CFG.API_BASE}/graph?topic=${encodeURIComponent(topic)}` +
+           `&min_year=${minYear}&max_year=${maxYear}`
+         : `${CFG.API_BASE}/graph?min_year=${minYear}&max_year=${maxYear}`;
+        
     axios.get(url).then(res => setData(res.data));
   }, [topic, minYear, maxYear]);
 
@@ -48,18 +49,20 @@ export default function Graph({ topic, minYear, maxYear }) {
       return;
     }
 
-     // 2️⃣ sanitize IDs and position children
-    const angleStep = (2 * Math.PI) / list.length;
-    const newNodes = list.map((d, i) => ({
-      id: `${node.id}::${d.name.replace(/[^a-z0-9]/gi, "_")}`,  // safe, unique ID
+     // fix id's and position children
+    const angleStep = (2 * Math.PI) / list.length || 1;
+    const ring = 80 + Math.sqrt(list.length) * 20;
+    const newNodes  = list.map((d, i) => ({
+
+      id: `${node.id}::${d.name.replace(/[^a-z0-9]/gi, "_")}`,  // unique ID
       parent: node.id,
       level: 1,
       label: d.name,
       year: d.year,
       url: d.url,
       branch: node.branch,
-      fx: node.x + 60 * Math.cos(angleStep * i),
-      fy: node.y + 60 * Math.sin(angleStep * i)
+      fx: node.x + ring * Math.cos(angleStep * i) + (Math.random() - 0.5) * 10,
+      fy: node.y + ring * Math.sin(angleStep * i) + (Math.random() - 0.5) * 10,
     }));
 
     const newLinks = newNodes.map(n => ({
@@ -79,8 +82,16 @@ export default function Graph({ topic, minYear, maxYear }) {
     // choose colour: branch colour for both levels
     const col  = CFG.COLOURS[node.branch] || "#888";
   
-    // choose size
-    const size = node.level === 0 ? CFG.TOPIC_HEX_SIZE : CFG.DISC_HEX_SIZE;
+    // ── dynamic size so the hex fits the text ───────────────
+    let size;
+    if (node.level === 0) {
+      const w = ctx.measureText(node.label).width;
+      size = Math.min(CFG.TOPIC_HEX_SIZE, 10 + w * 0.35);
+
+    } else {
+    size = CFG.DISC_HEX_SIZE;
+    }
+
   
     // glow only on level-0
     drawHex(ctx, node, size, col, node.level === 0 ? col : undefined);
@@ -91,10 +102,24 @@ export default function Graph({ topic, minYear, maxYear }) {
       : `${node.label} (${node.year ?? "n/a"})`;
   
     // label --------------------------------------------------------
-    ctx.font      = `${node.level === 0 ? CFG.FONT_SIZE_L0 : CFG.FONT_SIZE_L1}px Arial`;
+    ctx.font = `${node.level === 0 ? 10 : CFG.FONT_SIZE_L1}px Arial`;
+    ctx.fillStyle = "white";
     ctx.textAlign = "center";
-    ctx.fillStyle = node.level === 0 ? "#fff" : "#000";
-    ctx.fillText(node.label.slice(0, 14), node.x, node.y + 3);
+    ctx.textBaseline = "middle";
+
+    const maxWidth = node.level === 0 ? 70 : 40;  // max text width in px
+    let label = node.label;
+
+    // shrink label to fit hex size
+    while (ctx.measureText(label).width > maxWidth && label.length > 0) {
+      label = label.slice(0, -1);
+    }
+    if (label !== node.label) {
+      label += "…";
+    }
+
+    ctx.fillText(label, node.x, node.y);
+
   }, []);
 
   return (
@@ -102,10 +127,13 @@ export default function Graph({ topic, minYear, maxYear }) {
       ref              ={ref}
       graphData        ={data}
       nodeCanvasObject ={draw}
-      nodePointerAreaPaint={(n, colour, ctx) =>
-          drawHex(ctx, n,
-                  n.level===0 ? CFG.TOPIC_HEX_SIZE : CFG.DISC_HEX_SIZE,
-                  colour)}                                   // ← fixed param list
+      nodePointerAreaPaint={(n, c, ctx) =>
+        drawHex(ctx, n,
+          n.level === 0 ? Math.min(70, 10 + ctx.measureText(n.label).width * 0.35)
+                        : CFG.DISC_HEX_SIZE,
+          c
+        )
+      }                      
       onNodeClick      ={handleClick}
       cooldownTicks    ={40}
       onEngineStop     ={()=>ref.current.zoomToFit(400)}
